@@ -4,6 +4,8 @@ CLAUDE.md
 AGENTS.md
 .claude/
 
+app.db
+
 # dependencies
 /node_modules
 /.pnp
