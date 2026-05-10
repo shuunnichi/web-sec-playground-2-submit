@@ -72,7 +72,8 @@ const Page: React.FC = () => {
   }, [formMethods, isInitialized]);
 
   // ルートエラーのクリア用 onChange ハンドラ合成
-  const { onChange: onAboutSlugChange, ...aboutSlugRegister } = formMethods.register(c_AboutSlug);
+  const { onChange: onAboutSlugChange, ...aboutSlugRegister } =
+    formMethods.register(c_AboutSlug);
 
   // フォームの送信処理
   const onSubmit = async (formValues: About) => {
@@ -103,7 +104,7 @@ const Page: React.FC = () => {
       <main>
         <div className="text-2xl font-bold">
           <FontAwesomeIcon icon={faIdCard} className="mr-1.5" />
-          Local Tech News
+          About（編集）
         </div>
         <div className="mt-4 flex items-center gap-x-2">
           <FontAwesomeIcon
@@ -137,10 +138,13 @@ const Page: React.FC = () => {
           </label>
           <TextInputField
             {...aboutSlugRegister}
-            onChange={(e) => { onAboutSlugChange(e); formMethods.clearErrors("root"); }}
+            onChange={(e) => {
+              onAboutSlugChange(e);
+              formMethods.clearErrors("root");
+            }}
             id={c_AboutSlug}
             placeholder="4〜16文字の英小文字・数字・ハイフンが使用できます。"
-            type="email"
+            type="text"
             disabled={formMethods.formState.isSubmitting}
             error={!!fieldErrors.aboutSlug}
             autoComplete="off"

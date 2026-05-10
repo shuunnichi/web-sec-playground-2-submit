@@ -22,7 +22,7 @@ export const verifySession = async (): Promise<string | null> => {
     cookieStore.set("session_id", "", {
       path: "/",
       httpOnly: true,
-      sameSite: "strict",
+      sameSite: "lax",
       maxAge: 0,
       secure: false, // 本番は true に
     });
@@ -40,7 +40,7 @@ export const verifySession = async (): Promise<string | null> => {
   cookieStore.set("session_id", sessionId, {
     path: "/",
     httpOnly: true,
-    sameSite: "strict",
+    sameSite: "lax",
     maxAge: tokenMaxAgeSeconds,
     secure: false,
   });
