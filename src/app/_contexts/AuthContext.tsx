@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, createContext } from "react";
+import React, { useMemo, createContext } from "react";
 import type { UserProfile } from "@/app/_types/UserProfile";
 import useSWR, { mutate } from "swr";
 import type { ApiResponse } from "../_types/ApiResponse";
@@ -22,18 +22,14 @@ interface Props {
 }
 
 const AuthProvider: React.FC<Props> = ({ children }) => {
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const { data: session } = useSWR<ApiResponse<UserProfile | null>>(
     "/api/auth",
     AUTH.isSession ? sessionFetcher : jwtFetcher,
   );
 
-  useEffect(() => {
-    if (session && session.success) {
-      setUserProfile(session.payload);
-      return;
-    }
-    setUserProfile(null);
+  const userProfile = useMemo<UserProfile | null>(() => {
+    if (session && session.success) return session.payload;
+    return null;
   }, [session]);
 
   const logout = async () => {
@@ -51,7 +47,6 @@ const AuthProvider: React.FC<Props> = ({ children }) => {
     }
     // SWR キャッシュを無効化
     mutate(() => true, undefined, { revalidate: false });
-    setUserProfile(null);
     return true;
   };
 
