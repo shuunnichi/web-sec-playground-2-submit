@@ -45,8 +45,8 @@ const Page = async ({ params }: Props) => {
 
       <div className="mt-6 text-sm text-slate-600">
         <p className="text-rose-500">
-          ※
-          このページには、蓄積型クロスサイトスクリプティング（Stored XSS）が成立し得る深刻な脆弱性が含まれています。
+          ※ このページには、蓄積型クロスサイトスクリプティング（Stored
+          XSS）が成立し得る深刻な脆弱性が含まれています。
         </p>
       </div>
     </main>
