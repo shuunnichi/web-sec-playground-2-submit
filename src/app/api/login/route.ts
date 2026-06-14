@@ -1,4 +1,4 @@
-import bcrypt from "bcryptjs"; // 👈 これを追加
+import bcrypt from "bcryptjs";
 import { prisma } from "@/libs/prisma";
 import { loginRequestSchema } from "@/app/_types/LoginRequest";
 import { userProfileSchema } from "@/app/_types/UserProfile";
@@ -6,8 +6,7 @@ import type { UserProfile } from "@/app/_types/UserProfile";
 import type { ApiResponse } from "@/app/_types/ApiResponse";
 import { NextResponse, NextRequest } from "next/server";
 import { createSession } from "@/app/api/_helper/createSession";
-import { createJwt } from "@/app/api/_helper/createJwt";
-import { AUTH } from "@/config/auth";
+// import { AUTH } from "@/config/auth"; // セッション固定にするため不要
 
 // キャッシュを無効化して毎回最新情報を取得
 export const dynamic = "force-dynamic";
@@ -30,51 +29,38 @@ export const POST = async (req: NextRequest) => {
     const user = await prisma.user.findUnique({
       where: { email: loginRequest.email },
     });
+    
     if (!user) {
-      // 💀 このアカウント（メールアドレス）の有効無効が分かってしまう。
       const res: ApiResponse<null> = {
         success: false,
         payload: null,
-        message: "このメールアドレスは登録されていません。",
-        // message: "メールアドレスまたはパスワードの組み合わせが正しくありません。",
+        message: "メールアドレスまたはパスワードの組み合わせが正しくありません。",
       };
       return NextResponse.json(res);
     }
 
     // パスワードの検証
-    // ✍ bcrypt でハッシュ化したパスワードを検証するように書き換えよ。
     const isValidPassword = await bcrypt.compare(loginRequest.password, user.password);
     if (!isValidPassword) {
       const res: ApiResponse<null> = {
         success: false,
         payload: null,
-        message:
-          "メールアドレスまたはパスワードの組み合わせが正しくありません。",
+        message: "メールアドレスまたはパスワードの組み合わせが正しくありません。",
       };
       return NextResponse.json(res);
     }
 
     const tokenMaxAgeSeconds = 60 * 60 * 3; // 3時間
 
-    if (AUTH.isSession) {
-      // ■■ セッションベース認証の処理 ■■
-      await createSession(user.id, tokenMaxAgeSeconds);
-      const res: ApiResponse<UserProfile> = {
-        success: true,
-        payload: userProfileSchema.parse(user), // 余分なプロパティを削除
-        message: "",
-      };
-      return NextResponse.json(res);
-    } else {
-      // ■■ トークンベース認証の処理 ■■
-      const jwt = await createJwt(user, tokenMaxAgeSeconds);
-      const res: ApiResponse<string> = {
-        success: true,
-        payload: jwt,
-        message: "",
-      };
-      return NextResponse.json(res);
-    }
+    // ■■ セッションベース認証の処理のみ実行 ■■
+    await createSession(user.id, tokenMaxAgeSeconds);
+    const res: ApiResponse<UserProfile> = {
+      success: true,
+      payload: userProfileSchema.parse(user), // 余分なプロパティを削除
+      message: "",
+    };
+    return NextResponse.json(res);
+
   } catch (e) {
     const errorMsg = e instanceof Error ? e.message : "Internal Server Error";
     console.error(errorMsg);

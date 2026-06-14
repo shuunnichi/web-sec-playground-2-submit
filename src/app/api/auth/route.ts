@@ -3,8 +3,7 @@ import type { UserProfile } from "@/app/_types/UserProfile";
 import type { ApiResponse } from "@/app/_types/ApiResponse";
 import { NextResponse, NextRequest } from "next/server";
 import { verifySession } from "@/app/api/_helper/verifySession";
-import { verifyJwt } from "@/app/api/_helper/verifyJwt";
-import { AUTH } from "@/config/auth";
+// 👈 verifyJwt と AUTH の import を削除しました
 
 // キャッシュを無効化して常に最新情報を取得
 export const dynamic = "force-dynamic";
@@ -13,12 +12,8 @@ export const revalidate = 0;
 
 export const GET = async (req: NextRequest) => {
   try {
-    let userId: string | null = "";
-    if (AUTH.isSession) {
-      userId = await verifySession(); // セッションベース認証
-    } else {
-      userId = await verifyJwt(req); // トークンベース認証
-    }
+    // ■■ JWTの分岐を消して、セッション認証のみに固定 ■■
+    const userId = await verifySession(); 
 
     if (!userId) {
       const res: ApiResponse<null> = {
@@ -26,10 +21,10 @@ export const GET = async (req: NextRequest) => {
         payload: null,
         message: "認証情報が無効です。再度ログインしてください。",
       };
-      return NextResponse.json(res); // 失敗時も200を返す設計
+      return NextResponse.json(res); 
     }
 
-    // userId から userProfile を取得
+    // userId から userProfile を取得（👈 これは絶対に必要なので残します！）
     const user = (await prisma.user.findUnique({
       where: { id: userId },
       select: {
