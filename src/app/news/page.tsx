@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useState, useCallback, useMemo } from "react";
+import DOMPurify from "isomorphic-dompurify";
 import { useSearchParams } from "next/navigation";
 import useSWR, { mutate } from "swr";
 import Cookies from "js-cookie";
@@ -26,8 +27,14 @@ const NewsPage: React.FC = () => {
 
   // useSearchParams で URL クエリパラメータを直接取得
   const searchParams = useSearchParams();
-  const name = searchParams.get("name"); // 💀 サニタイズ（無害化）せずに値を取得
-
+  // const name = searchParams.get("name"); // 💀 サニタイズ（無害化）せずに値を取得
+// ✅ URLパラメータから値を取得し、許可するタグ・属性を指定して無害化
+const rawName = searchParams.get("name");
+const name = DOMPurify.sanitize(rawName ?? "", {
+  ALLOWED_TAGS: ["b", "i", "font", "br"], 
+  ALLOWED_ATTR: ["color"], 
+});
+  
   // Cookie をセットする関数の定義
   const setSessionCookie = useCallback((region: Region) => {
     Cookies.set("region", region, {
@@ -63,57 +70,57 @@ const NewsPage: React.FC = () => {
 
   // ================================================================
   //【基本的な実装】ここから
-  const [newsItems, setNewsItems] = useState<NewsItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  useEffect(() => {
-    const fetchNews = async () => {
-      try {
-        setIsLoading(true);
-        const res = await fetch(ep, {
-          method: "GET",
-          credentials: "include", // Cookieも送信
-          cache: "no-store",
-        });
-        const data: ApiResponse<NewsItem[]> = await res.json();
-        if (data.success) {
-          setNewsItems(data.payload);
-        } else {
-          console.error(data.message);
-        }
-      } catch (e) {
-        console.error("ニュース記事取得失敗", e);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchNews();
-  }, [region]);
+  // const [newsItems, setNewsItems] = useState<NewsItem[]>([]);
+  // const [isLoading, setIsLoading] = useState(true);
+  // useEffect(() => {
+  //   const fetchNews = async () => {
+  //     try {
+  //       setIsLoading(true);
+  //       const res = await fetch(ep, {
+  //         method: "GET",
+  //         credentials: "include", // Cookieも送信
+  //         cache: "no-store",
+  //       });
+  //       const data: ApiResponse<NewsItem[]> = await res.json();
+  //       if (data.success) {
+  //         setNewsItems(data.payload);
+  //       } else {
+  //         console.error(data.message);
+  //       }
+  //     } catch (e) {
+  //       console.error("ニュース記事取得失敗", e);
+  //     } finally {
+  //       setIsLoading(false);
+  //     }
+  //   };
+  //   fetchNews();
+  // }, [region]);
   //【基本的な実装】ここまで
   // ================================================================
 
   // ================================================================
   //【💡SWRを利用した実装】ここから
-  // const fetcher = useCallback(async (endPoint: string) => {
-  //   const res = await fetch(endPoint, {
-  //     credentials: "same-origin",
-  //     cache: "no-store",
-  //   });
-  //   return res.json();
-  // }, []);
+  const fetcher = useCallback(async (endPoint: string) => {
+    const res = await fetch(endPoint, {
+      credentials: "same-origin",
+      cache: "no-store",
+    });
+    return res.json();
+  }, []);
 
-  // const { data: news, isLoading } = useSWR<ApiResponse<NewsItem[]>>(
-  //   ep,
-  //   fetcher,
-  // );
+  const { data: news, isLoading } = useSWR<ApiResponse<NewsItem[]>>(
+    ep,
+    fetcher,
+  );
 
-  // const newsItems = useMemo<NewsItem[]>(
-  //   () => (news && news.success ? news.payload : []),
-  //   [news],
-  // );
+  const newsItems = useMemo<NewsItem[]>(
+    () => (news && news.success ? news.payload : []),
+    [news],
+  );
 
-  // useEffect(() => {
-  //   mutate(ep); // 再検証(キャッシュ無効化して再取得)
-  // }, [region]);
+  useEffect(() => {
+    mutate(ep); // 再検証(キャッシュ無効化して再取得)
+  }, [region]);
   //【💡SWRを利用した実装】ここまで
   // ================================================================
 
@@ -146,7 +153,7 @@ const NewsPage: React.FC = () => {
       {name && (
         <div className="mt-4 ml-4 flex text-sm text-slate-600">
           {/* サニタイズされていない値を dangerouslySetInnerHTML で出力（💀超危険） */}
-          <span dangerouslySetInnerHTML={{ __html: name }} className="mr-1" />
+          <span className="mr-1">{name}</span>
           さん、こんにちは！
         </div>
       )}

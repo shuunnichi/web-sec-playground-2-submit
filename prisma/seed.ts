@@ -1,5 +1,6 @@
 // 実行は npx prisma db seed (prisma.config.ts にコマンド定義されている)
 // 実行結果は npx prisma studio で確認可能
+import bcrypt from "bcryptjs"; // 👈 これを追加
 import { v4 as uuid } from "uuid";
 import { prisma } from "@/libs/prisma";
 import { Role, Region } from "@/generated/prisma/enums";
@@ -69,18 +70,20 @@ const main = async () => {
   await prisma.product.deleteMany();
   await prisma.cartItem.deleteMany();
 
-  // ユーザ（user）テーブルにテストデータを挿入
-  await prisma.user.createMany({
-    data: userSeeds.map((userSeed) => ({
+// ユーザ（user）テーブルにテストデータを挿入
+await prisma.user.createMany({
+  data: await Promise.all(
+    userSeeds.map(async (userSeed) => ({
       id: uuid(),
       name: userSeed.name,
-      password: userSeed.password,
+      password: await bcrypt.hash(userSeed.password, 10), // 👈 平文ではなくハッシュ化する
       role: userSeed.role,
       email: userSeed.email,
       aboutSlug: userSeed.aboutSlug || null,
       aboutContent: userSeed.aboutContent || "",
-    })),
-  });
+    }))
+  ),
+});
 
   // 商品（product）テーブルにテストデータを挿入
   await prisma.product.createMany({

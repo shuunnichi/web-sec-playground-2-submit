@@ -1,3 +1,4 @@
+import { AboutView } from "@/app/_components/AboutView";
 import { prisma } from "@/libs/prisma";
 import { notFound } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -40,7 +41,12 @@ const Page = async ({ params }: Props) => {
           これが「蓄積型XSS（Stored XSS）」である。
           反射型XSSと異なり、被害者に不審なURLを踏ませる必要がない。
         */}
-        <div dangerouslySetInnerHTML={{ __html: user.aboutContent }} />
+        {/* <div dangerouslySetInnerHTML={{ __html: user.aboutContent }} /> */}
+        <AboutView about={{
+  userName: user.name,
+  aboutSlug: slug,
+  aboutContent: user.aboutContent,
+}} />
       </div>
 
       <div className="mt-6 text-sm text-slate-600">

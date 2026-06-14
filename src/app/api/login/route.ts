@@ -1,3 +1,4 @@
+import bcrypt from "bcryptjs"; // 👈 これを追加
 import { prisma } from "@/libs/prisma";
 import { loginRequestSchema } from "@/app/_types/LoginRequest";
 import { userProfileSchema } from "@/app/_types/UserProfile";
@@ -42,7 +43,7 @@ export const POST = async (req: NextRequest) => {
 
     // パスワードの検証
     // ✍ bcrypt でハッシュ化したパスワードを検証するように書き換えよ。
-    const isValidPassword = user.password === loginRequest.password;
+    const isValidPassword = await bcrypt.compare(loginRequest.password, user.password);
     if (!isValidPassword) {
       const res: ApiResponse<null> = {
         success: false,
