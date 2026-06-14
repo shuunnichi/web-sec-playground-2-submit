@@ -1,8 +1,5 @@
 "use client";
 
-// ServerAction (Custom Invocation) を利用した実装
-// （ /api/signup のようなAPIエンドポイントを実装する必要がない ）
-
 import React, { useState, useEffect, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -12,7 +9,7 @@ import { ErrorMsgField } from "@/app/_components/ErrorMsgField";
 import { Button } from "@/app/_components/Button";
 import NextLink from "next/link";
 import { useRouter } from "next/navigation";
-import { faSpinner, faPenNib } from "@fortawesome/free-solid-svg-icons";
+import { faSpinner, faPenNib, faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons"; 
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 import { signupServerAction } from "@/app/_actions/signup";
@@ -21,20 +18,23 @@ const Page: React.FC = () => {
   const c_Name = "name";
   const c_Email = "email";
   const c_Password = "password";
+  const c_ConfirmPassword = "confirmPassword"; // 👈 追加
 
   const router = useRouter();
 
   const [isPending, startTransition] = useTransition();
   const [isSignUpCompleted, setIsSignUpCompleted] = useState(false);
 
-  // フォーム処理関連の準備と設定
+  // 👇 パスワードの表示/非表示ステート
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   const formMethods = useForm<SignupRequest>({
     mode: "onChange",
     resolver: zodResolver(signupRequestSchema),
   });
   const fieldErrors = formMethods.formState.errors;
 
-  // ルートエラー（サーバサイドで発生した認証エラー）の表示設定の関数
   const setRootError = (errorMsg: string) => {
     formMethods.setError("root", {
       type: "manual",
@@ -42,9 +42,11 @@ const Page: React.FC = () => {
     });
   };
 
-  // ルートエラーのクリア用 onChange ハンドラ合成
   const { onChange: onEmailChange, ...emailRegister } = formMethods.register(c_Email);
   const { onChange: onPasswordChange, ...passwordRegister } = formMethods.register(c_Password);
+  // 👇 確認用パスワードのレジスタ
+  const { onChange: onConfirmPasswordChange, ...confirmPasswordRegister } = formMethods.register(c_ConfirmPassword);
+  
   const clearRootOnChange =
     (originalOnChange: React.ChangeEventHandler<HTMLInputElement>) =>
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -52,20 +54,16 @@ const Page: React.FC = () => {
       formMethods.clearErrors("root");
     };
 
-  // サインアップ完了後のリダイレクト処理
   useEffect(() => {
     if (isSignUpCompleted) {
       router.replace(`/login?${c_Email}=${formMethods.getValues(c_Email)}`);
       router.refresh();
-      console.log("サインアップ完了");
     }
   }, [formMethods, isSignUpCompleted, router]);
 
-  // フォームの送信処理
   const onSubmit = async (signupRequest: SignupRequest) => {
     try {
       startTransition(async () => {
-        // ServerAction (Custom Invocation) の利用
         const res = await signupServerAction(signupRequest);
         if (!res.success) {
           setRootError(res.message);
@@ -74,8 +72,7 @@ const Page: React.FC = () => {
         setIsSignUpCompleted(true);
       });
     } catch (e) {
-      const errorMsg =
-        e instanceof Error ? e.message : "予期せぬエラーが発生しました。";
+      const errorMsg = e instanceof Error ? e.message : "予期せぬエラーが発生しました。";
       setRootError(errorMsg);
     }
   };
@@ -128,17 +125,55 @@ const Page: React.FC = () => {
           <label htmlFor={c_Password} className="mb-2 block font-bold">
             パスワード
           </label>
-          <TextInputField
-            {...passwordRegister}
-            onChange={clearRootOnChange(onPasswordChange)}
-            id={c_Password}
-            placeholder="*****"
-            type="password"
-            disabled={isPending || isSignUpCompleted}
-            error={!!fieldErrors.password}
-            autoComplete="off"
-          />
+          <div className="relative">
+            <TextInputField
+              {...passwordRegister}
+              onChange={clearRootOnChange(onPasswordChange)}
+              id={c_Password}
+              placeholder="*****"
+              type={showPassword ? "text" : "password"} 
+              disabled={isPending || isSignUpCompleted}
+              error={!!fieldErrors.password}
+              autoComplete="off"
+            />
+            <button
+              type="button"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+              onClick={() => setShowPassword(!showPassword)}
+              tabIndex={-1}
+            >
+              <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
+            </button>
+          </div>
           <ErrorMsgField msg={fieldErrors.password?.message} />
+        </div>
+
+        {/* 👇 確認用パスワード入力欄の追加 */}
+        <div>
+          <label htmlFor={c_ConfirmPassword} className="mb-2 block font-bold">
+            パスワード（確認用）
+          </label>
+          <div className="relative">
+            <TextInputField
+              {...confirmPasswordRegister}
+              onChange={clearRootOnChange(onConfirmPasswordChange)}
+              id={c_ConfirmPassword}
+              placeholder="*****"
+              type={showConfirmPassword ? "text" : "password"}
+              disabled={isPending || isSignUpCompleted}
+              error={!!fieldErrors.confirmPassword}
+              autoComplete="off"
+            />
+            <button
+              type="button"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              tabIndex={-1}
+            >
+              <FontAwesomeIcon icon={showConfirmPassword ? faEyeSlash : faEye} />
+            </button>
+          </div>
+          <ErrorMsgField msg={fieldErrors.confirmPassword?.message} />
           <ErrorMsgField msg={fieldErrors.root?.message} />
         </div>
 
@@ -147,11 +182,7 @@ const Page: React.FC = () => {
           width="stretch"
           className="tracking-widest"
           isBusy={isPending}
-          disabled={
-            !formMethods.formState.isValid ||
-            isPending ||
-            isSignUpCompleted
-          }
+          disabled={!formMethods.formState.isValid || isPending || isSignUpCompleted}
         >
           登録
         </Button>
